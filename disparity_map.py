@@ -84,7 +84,7 @@ def main(
     # Draw the keypoint matches between both pictures
     # Still based on: https://docs.opencv.org/master/dc/dc3/tutorial_py_matcher.html
  
-    if imageL and imageR: # means that using corn images with fewer matches
+    if imageL and imageR: # means that using corn images with fewer matches, so don't restrict matches like in his example
         draw_params = dict(matchColor=(0, 255, 0),
                         singlePointColor=(255, 0, 0),
                         matchesMask=matchesMask,
@@ -117,6 +117,14 @@ def main(
     pts1 = np.int32(pts1)
     pts2 = np.int32(pts2)
     fundamental_matrix, inliers = cv.findFundamentalMat(pts1, pts2, cv.FM_RANSAC)
+
+    """
+    fundamental matrix of form:
+    [[ 3.96105315e-07 -1.23545977e-04  1.08913931e-01]
+    [ 1.23366775e-04  4.77602264e-07  1.40532874e-02]
+    [-1.09681132e-01 -1.57383368e-02  1.00000000e+00]]
+    """
+
 
     # We select only inlier points
     pts1 = pts1[inliers.ravel() == 1]
@@ -240,6 +248,7 @@ def main(
         P1=8 * 1 * block_size * block_size,
         P2=32 * 1 * block_size * block_size,
     )
+
     disparity_SGBM = stereo.compute(img1_rectified, img2_rectified)
 
     plt.imshow(disparity_SGBM, cmap='plasma')
@@ -252,6 +261,11 @@ def main(
     plt.close()
 
     # Normalize the values to a range from 0..255 for a grayscale image
+
+    # recommended fix in comments of post...
+    unique = np.unique(disparity_SGBM)
+    disparity_SGBM = np.where(disparity_SGBM == unique[0], unique[1] - 1, disparity_SGBM)
+
     disparity_SGBM = cv.normalize(disparity_SGBM, disparity_SGBM, alpha=255,
                                 beta=0, norm_type=cv.NORM_MINMAX)
     disparity_SGBM = np.uint8(disparity_SGBM)
